@@ -381,14 +381,26 @@ function submit(){
 }
 
 function sendToGoogle(d){
-  const g = (d.status==='no') ? '0' : (d.guests || '1');
-  const fd=new FormData();
-  if(RSVP.entryName)    fd.append(RSVP.entryName, d.name);
-  if(RSVP.entryStatus)  fd.append(RSVP.entryStatus, GFORM_STATUS[d.status]);
-  if(RSVP.entryGuests)  fd.append(RSVP.entryGuests, g);
-  if(RSVP.entryComment) fd.append(RSVP.entryComment, d.comment);
-  fd.append('fvv','1'); fd.append('pageHistory','0');
-  return fetch(RSVP.googleFormUrl,{method:'POST',mode:'no-cors',body:fd}).catch(()=>{});
+  return new Promise((resolve)=>{
+    const g = (d.status==='no') ? '0' : (d.guests || '1');
+    let iframe=document.getElementById('gform_iframe');
+    if(!iframe){
+      iframe=document.createElement('iframe');
+      iframe.name='gform_iframe'; iframe.id='gform_iframe'; iframe.style.display='none';
+      document.body.appendChild(iframe);
+    }
+    const form=document.createElement('form');
+    form.action=RSVP.googleFormUrl; form.method='POST'; form.target='gform_iframe'; form.style.display='none';
+    const add=(k,v)=>{ if(!k) return; const i=document.createElement('input'); i.type='hidden'; i.name=k; i.value=(v==null?'':v); form.appendChild(i); };
+    add(RSVP.entryName, d.name);
+    add(RSVP.entryStatus, GFORM_STATUS[d.status]);
+    add(RSVP.entryGuests, g);
+    add(RSVP.entryComment, d.comment);
+    add('fvv','1'); add('pageHistory','0');
+    document.body.appendChild(form);
+    try{ form.submit(); }catch(e){}
+    setTimeout(()=>{ try{form.remove();}catch(e){} resolve(); }, 1200);
+  });
 }
 
 function showSuccess(d){
